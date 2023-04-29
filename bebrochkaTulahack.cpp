@@ -28,6 +28,18 @@ public:
         m_connection.reset();
     }
 
+    json::array tokenize(std::string const& str, const char delim)
+    {
+        std::stringstream ss(str);
+        json::array out;
+
+        std::string s;
+        while (std::getline(ss, s, delim)) {
+            out.push_back(json::string(s));
+        }
+        return out;
+    }
+
     json::array selectQuery(const std::string& query) {
         PQsendQuery(m_connection.get(), query.c_str());
         auto res = PQgetResult(m_connection.get());
@@ -40,8 +52,15 @@ public:
             for (int j = 0; j < results; ++j) {
                 std::string name = PQfname(res, j);
                 auto type = PQftype(res, j);
-                auto elem = PQgetvalue(res, i, j);
-                obj[name] = elem;
+                if (type == 1015) {
+                    std::string arr = PQgetvalue(res, i, j);
+                    json::array elem = tokenize(arr.substr(1, arr.size() - 2), ',');
+                    obj[name] = elem;
+                }
+                else {
+                    auto elem = PQgetvalue(res, i, j);
+                    obj[name] = elem;
+                }
             }
             resObj.push_back(obj);
         }
