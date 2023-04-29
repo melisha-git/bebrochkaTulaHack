@@ -57,6 +57,11 @@ public:
                     json::array elem = tokenize(arr.substr(1, arr.size() - 2), ',');
                     obj[name] = elem;
                 }
+                else if (type == 600) {
+                    std::string arr = PQgetvalue(res, i, j);
+                    json::array elem = tokenize(arr.substr(1, arr.size() - 2), ',');
+                    obj[name] = elem;
+                }
                 else {
                     auto elem = PQgetvalue(res, i, j);
                     obj[name] = elem;
