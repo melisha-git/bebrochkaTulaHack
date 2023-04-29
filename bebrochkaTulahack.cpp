@@ -21,11 +21,10 @@ using tcp = boost::asio::ip::tcp;
 class Database {
 public:
     Database() {
-        m_connection.reset(PQsetdbLogin(m_dbhost.c_str(), std::to_string(m_dbport).c_str(), nullptr, nullptr, m_dbname.c_str(), m_dbuser.c_str(), m_dbpass.c_str()), &PQfinish);
     }
 
     ~Database() {
-        m_connection.reset();
+        destruct();
     }
 
     json::array tokenize(std::string const& str, const char delim)
@@ -40,7 +39,13 @@ public:
         return out;
     }
 
+    void insertQuery(const std::string& query) {
+        init();
+        PQsendQuery(m_connection.get(), query.c_str());
+    }
+
     json::array selectQuery(const std::string& query) {
+        init();
         PQsendQuery(m_connection.get(), query.c_str());
         auto res = PQgetResult(m_connection.get());
         int turple = PQntuples(res);
@@ -79,6 +84,14 @@ private:
     std::string m_dbpass = "your_password";
 
     std::shared_ptr<PGconn>  m_connection;
+
+    void init() {
+        m_connection.reset(PQsetdbLogin(m_dbhost.c_str(), std::to_string(m_dbport).c_str(), nullptr, nullptr, m_dbname.c_str(), m_dbuser.c_str(), m_dbpass.c_str()), &PQfinish);
+    }
+
+    void destruct() {
+        m_connection.reset();
+    }
 };
 
 class connecting : public std::enable_shared_from_this<connecting> {
@@ -92,7 +105,7 @@ public:
 private:
     tcp::socket socket_;
     beast::flat_buffer buffer_{ 4096 };
-    http::request<http::dynamic_body> request_;
+    http::request<http::string_body> request_;
     http::response<http::dynamic_body> response_;
 
     void read_request() {
@@ -113,13 +126,37 @@ private:
         case http::verb::get:
             response_.result(http::status::ok);
             response_.set(http::field::server, "BebrochkaTeam");
-            create_response();
+            createGetResponse();
+            break;
+        case http::verb::post:
+            response_.result(http::status::ok);
+            response_.set(http::field::server, "BebrochkaTeam");
+            createPostResponce();
+            break;
         }
-
+        response_.set(http::field::access_control_allow_origin, "*");
+        response_.set(http::field::access_control_allow_headers, "content-type");
         write_response();
     }
 
-    void create_response() {
+    void createPostResponce() {
+        Database db;
+        if (request_.target() == "/register") {
+            json::value value = json::parse(request_.body());
+            if (value.is_object()) {
+                json::object obj = value.as_object();
+                if (obj.at("name").is_string()) {
+                    std::string name = obj.at("name").as_string().c_str();
+                    json::array selObj = db.selectQuery("SELECT id FROM users where name = \'" + name + "\';");
+                    if (selObj.size() == 0) {
+                        db.insertQuery("insert into users (name) values (\'" + name + "\');");
+                    }
+                }
+            }
+        }
+    }
+
+    void createGetResponse() {
         Database db;
         json::array obj;
         if (request_.target() == "/api" || request_.target() == "/") {
@@ -156,7 +193,6 @@ private:
         else
             response_.result(http::status::not_found);
         beast::ostream(response_.body()) << obj;
-        response_.set(http::field::access_control_allow_origin, "*");
     }
 
     void write_response() {
