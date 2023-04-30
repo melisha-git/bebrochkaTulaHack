@@ -38,6 +38,7 @@ json::array Database::selectQuery(const std::string& query) {
             auto type = PQftype(res, j);
             switch (type)
             {
+            case 1007:
             case 600:
             case 1015: {
                 std::string str = PQgetvalue(res, i, j);
