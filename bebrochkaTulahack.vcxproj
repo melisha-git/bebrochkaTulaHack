@@ -133,9 +133,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="bebrochkaTulahack.cpp" />
+    <ClCompile Include="Connecting.cpp" />
+    <ClCompile Include="Database.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Connecting.hpp" />
+    <ClInclude Include="Database.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
