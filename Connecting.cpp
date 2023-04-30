@@ -59,6 +59,8 @@ void Connecting::createPostResponce() {
         json::value value = json::parse(request_.body());
         if (value.is_object()) {
             json::object obj = value.as_object();
+            if (!obj.count("user_name") || !obj.at("user_name").is_string())
+                return;
             std::string user_name = obj.at("user_name").as_string().c_str();
             std::string place_name = obj.at("place_name").as_string().c_str();
             std::string place_adress = obj.at("place_adress").as_string().c_str();
